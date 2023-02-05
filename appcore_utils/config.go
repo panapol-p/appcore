@@ -15,7 +15,7 @@ type Configurations struct {
 	ObserveInsecureMode string
 
 	//database
-	CockroachConnString string
+	PostgresConnString string
 
 	//Redis
 	RedisUrl  string
@@ -34,7 +34,7 @@ func NewConfigurations() *Configurations {
 	viper.SetDefault("OBSERVE_IS_ACTIVE", false)
 	viper.SetDefault("OBSERVE_OTLP_ENDPOINT", "localhost:4317")
 	viper.SetDefault("OBSERVE_INSECURE_MODE", "false")
-	viper.SetDefault("COCKROACH_URL", "host=127.0.0.1 user=root password=example dbname=osp port=5432 sslmode=disable TimeZone=Asia/Bangkok")
+	viper.SetDefault("POSTGRES_URL", "host=127.0.0.1 user=root password=example dbname=osp port=5432 sslmode=disable TimeZone=Asia/Bangkok")
 	viper.SetDefault("REDIS_URL", "localhost:6379")
 	viper.SetDefault("REDIS_PASS", "password123")
 	viper.SetDefault("MEMPHIS_HOST", "localhost:9000")
@@ -46,7 +46,7 @@ func NewConfigurations() *Configurations {
 		ObserveIsActive:     viper.GetBool("OBSERVE_IS_ACTIVE"),
 		ObserveOTLPEndpoint: viper.GetString("OBSERVE_OTLP_ENDPOINT"),
 		ObserveInsecureMode: viper.GetString("OBSERVE_INSECURE_MODE"),
-		CockroachConnString: viper.GetString("COCKROACH_URL"),
+		PostgresConnString:  viper.GetString("POSTGRES_URL"),
 		RedisUrl:            viper.GetString("REDIS_URL"),
 		RedisPass:           viper.GetString("REDIS_PASS"),
 		MemphisHost:         viper.GetString("MEMPHIS_HOST"),

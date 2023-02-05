@@ -12,7 +12,7 @@ import (
 
 func NewPostgresDBStore(configs *appcore_utils.Configurations, logger *logrus.Logger) *gorm.DB {
 	logger.Info("Connecting to database")
-	db, err := gorm.Open(postgres.Open(configs.CockroachConnString), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(configs.PostgresConnString), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
 	}
