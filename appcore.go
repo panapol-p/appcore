@@ -33,13 +33,22 @@ type Service struct {
 }
 
 var port *string
+var ip *string
 
 func init() {
 	port = new(string)
 	port = flag.String("port", "", "your service port")
+
+	ip = new(string)
+	ip = flag.String("ip", "", "your service ip")
+
 	flag.Parse()
 	if *port == "" {
 		*port = "8000"
+	}
+
+	if *ip == "" {
+		*ip = "0.0.0.0"
 	}
 }
 
@@ -146,5 +155,5 @@ func initGinAPI(configs *appcore_utils.Configurations, h *appcore_handler.ApiHan
 			"code":    "PAGE_NOT_FOUND",
 			"message": "Page not found"})
 	})
-	return r.ListenAndServe(*port)
+	return r.ListenAndServe(*ip, *port)
 }
