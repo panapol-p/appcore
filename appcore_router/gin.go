@@ -38,9 +38,10 @@ func New(logger *logrus.Logger) *Router {
 	return &Router{r, logger}
 }
 
-func (r *Router) ListenAndServe(port string) *http.Server {
+func (r *Router) ListenAndServe(ip, port string) *http.Server {
+	r.logger.Info("listen on ", ip+":"+port)
 	s := &http.Server{
-		Addr:    "0.0.0.0:" + port,
+		Addr:    ip + ":" + port,
 		Handler: r,
 		// ReadTimeout:  10 * time.Second,
 		// WriteTimeout: 10 * time.Second,
