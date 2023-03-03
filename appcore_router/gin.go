@@ -39,7 +39,7 @@ func New(logger *logrus.Logger) *Router {
 }
 
 func (r *Router) ListenAndServe(ip, port string) *http.Server {
-	r.logger.Info("listen on ", ip+":"+port)
+	r.logger.Info("listen api on ", ip+":"+port)
 	s := &http.Server{
 		Addr:    ip + ":" + port,
 		Handler: r,
@@ -49,7 +49,6 @@ func (r *Router) ListenAndServe(ip, port string) *http.Server {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	r.logger.Info("listening...")
 	go func() {
 		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			r.logger.Fatalf("listen: %s\n", err)

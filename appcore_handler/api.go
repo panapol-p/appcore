@@ -2,6 +2,7 @@ package appcore_handler
 
 import (
 	"context"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,10 @@ import (
 	"github.com/memphisdev/memphis.go"
 	"github.com/minio/minio-go"
 	inf "github.com/panapol-p/appcore/appcore_internal/appcore_interface"
+	"github.com/panapol-p/appcore/appcore_internal/appcore_model"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"gorm.io/gorm"
 )
 
@@ -85,6 +90,36 @@ func (h *ApiHandler) HealthCheck(c *gin.Context) {
 		if !h.MessageBroker.IsConnected() {
 			isError = true
 			errorMessage = "cannot ping to Message Broker service"
+			return
+		}
+	}
+
+	if h.Module.GrpcServer() != nil {
+
+		//healthcheck
+		// grpc healthcheck
+		// Create gRPC client for health check
+		healthConn, err := grpc.Dial(*appcore_model.IP+":"+*appcore_model.GrpcPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Println(1, err.Error())
+			isError = true
+			errorMessage = "cannot ping to GRPC service"
+			return
+		}
+		healthClient := grpc_health_v1.NewHealthClient(healthConn)
+
+		// Check gRPC server health status
+		healthStatus, err := healthClient.Check(c, &grpc_health_v1.HealthCheckRequest{})
+		if err != nil {
+			log.Println(2, err.Error())
+			isError = true
+			errorMessage = "cannot ping to GRPC service"
+			return
+		}
+		if healthStatus.Status != grpc_health_v1.HealthCheckResponse_SERVING {
+			log.Println(3, err.Error())
+			isError = true
+			errorMessage = "cannot ping to GRPC service"
 			return
 		}
 	}
