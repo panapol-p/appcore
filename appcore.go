@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/memphisdev/memphis.go"
+	"github.com/minio/minio-go"
 	"github.com/panapol-p/appcore/appcore_handler"
 	"github.com/panapol-p/appcore/appcore_router"
 	"github.com/panapol-p/appcore/appcore_utils"
@@ -28,6 +29,7 @@ type Service struct {
 	DB            *gorm.DB
 	Cache         *redis.Client
 	MessageBroker *memphis.Conn
+	Storage       *minio.Client
 
 	server *http.Server
 }
@@ -52,21 +54,9 @@ func init() {
 	}
 }
 
-func NewService(serviceName, version string, apiHandler *appcore_handler.ApiHandler,
-	config *appcore_utils.Configurations, logger *logrus.Logger,
-	db *gorm.DB, cache *redis.Client, messageBroker *memphis.Conn) *Service {
+func NewService(serviceName, version string, apiHandler *appcore_handler.ApiHandler, config *appcore_utils.Configurations, logger *logrus.Logger) *Service {
 
 	logger.Info(">>>>> service : " + serviceName + " " + version + " <<<<<")
-
-	if config.ObserveIsActive {
-		traceCleaner := appcore_utils.InitTracer(serviceName, config.ObserveOTLPEndpoint, config.ObserveInsecureMode)
-		timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := traceCleaner(timeoutCtx); err != nil {
-			logger.Error("observability -> ", err.Error())
-			os.Exit(1)
-		}
-	}
 
 	if config.ObserveIsActive {
 		traceCleaner := appcore_utils.InitTracer(serviceName, config.ObserveOTLPEndpoint, config.ObserveInsecureMode)
@@ -84,9 +74,10 @@ func NewService(serviceName, version string, apiHandler *appcore_handler.ApiHand
 		ApiHandler:    apiHandler,
 		Config:        config,
 		Logger:        logger,
-		DB:            db,
-		Cache:         cache,
-		MessageBroker: messageBroker,
+		DB:            apiHandler.DB,
+		Cache:         apiHandler.Cache,
+		MessageBroker: apiHandler.MessageBroker,
+		Storage:       apiHandler.Storage,
 	}
 }
 

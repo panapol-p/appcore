@@ -25,6 +25,13 @@ type Configurations struct {
 	MemphisHost     string
 	MemphisUsername string
 	MemphisToken    string
+
+	//Storage
+	MinioURL        string
+	MinioSSL        bool
+	MinioAccessKey  string
+	MinioSecretKey  string
+	MinioBucketName string
 }
 
 // NewConfigurations returns a new Configuration object
@@ -40,6 +47,11 @@ func NewConfigurations() *Configurations {
 	viper.SetDefault("MEMPHIS_HOST", "localhost:9000")
 	viper.SetDefault("MEMPHIS_USERNAME", "root")
 	viper.SetDefault("MEMPHIS_TOKEN", "memphis")
+	viper.SetDefault("MINIO_URL", "localhost:9010")
+	viper.SetDefault("MINIO_SSL", false)
+	viper.SetDefault("MINIO_ACCESS_KEY", "minioadmin")
+	viper.SetDefault("MINIO_SECRET_KEY", "minioadmin")
+	viper.SetDefault("MINIO_BUCKET_NAME", "miniobucket")
 
 	configs := &Configurations{
 		GinIsReleaseMode:    viper.GetBool("GIN_IS_RELEASE_MODE"),
@@ -52,6 +64,11 @@ func NewConfigurations() *Configurations {
 		MemphisHost:         viper.GetString("MEMPHIS_HOST"),
 		MemphisUsername:     viper.GetString("MEMPHIS_USERNAME"),
 		MemphisToken:        viper.GetString("MEMPHIS_TOKEN"),
+		MinioURL:            viper.GetString("MINIO_URL"),
+		MinioSSL:            viper.GetBool("MINIO_SSL"),
+		MinioAccessKey:      viper.GetString("MINIO_ACCESS_KEY"),
+		MinioSecretKey:      viper.GetString("MINIO_SECRET_KEY"),
+		MinioBucketName:     viper.GetString("MINIO_BUCKET_NAME"),
 	}
 	return configs
 }
