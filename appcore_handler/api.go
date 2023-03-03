@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
 	"github.com/memphisdev/memphis.go"
+	"github.com/minio/minio-go"
 	inf "github.com/panapol-p/appcore/appcore_internal/appcore_interface"
 	"gorm.io/gorm"
 )
@@ -19,9 +20,10 @@ type ApiHandler struct {
 	DB            *gorm.DB
 	Cache         *redis.Client
 	MessageBroker *memphis.Conn
+	Storage       *minio.Client
 }
 
-func NewHandler(serviceName, version string, module inf.Module, db *gorm.DB, cache *redis.Client, messageBroker *memphis.Conn) *ApiHandler {
+func NewHandler(serviceName, version string, module inf.Module, db *gorm.DB, cache *redis.Client, messageBroker *memphis.Conn, storage *minio.Client) *ApiHandler {
 	return &ApiHandler{
 		ServiceName:   serviceName,
 		Version:       version,
@@ -29,6 +31,7 @@ func NewHandler(serviceName, version string, module inf.Module, db *gorm.DB, cac
 		DB:            db,
 		Cache:         cache,
 		MessageBroker: messageBroker,
+		Storage:       storage,
 	}
 }
 
@@ -85,5 +88,4 @@ func (h *ApiHandler) HealthCheck(c *gin.Context) {
 			return
 		}
 	}
-
 }
