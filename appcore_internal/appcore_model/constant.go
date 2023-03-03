@@ -6,3 +6,7 @@ const (
 	ErrorMsgIdMissing = "id is missing"
 	NoValue           = "no value"
 )
+
+var Port *string
+var GrpcPort *string
+var IP *string

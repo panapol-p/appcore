@@ -3,6 +3,7 @@ package appcore
 import (
 	"context"
 	"flag"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -12,11 +13,14 @@ import (
 	"github.com/memphisdev/memphis.go"
 	"github.com/minio/minio-go"
 	"github.com/panapol-p/appcore/appcore_handler"
+	"github.com/panapol-p/appcore/appcore_internal/appcore_model"
 	"github.com/panapol-p/appcore/appcore_router"
 	"github.com/panapol-p/appcore/appcore_utils"
 	"github.com/sirupsen/logrus"
 	requestID "github.com/sumit-tembe/gin-requestid"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"google.golang.org/grpc/health"
+	"google.golang.org/grpc/health/grpc_health_v1"
 	"gorm.io/gorm"
 )
 
@@ -31,26 +35,30 @@ type Service struct {
 	MessageBroker *memphis.Conn
 	Storage       *minio.Client
 
-	server *http.Server
+	restAPIServer *http.Server
 }
 
-var port *string
-var ip *string
-
 func init() {
-	port = new(string)
-	port = flag.String("port", "", "your service port")
+	appcore_model.Port = new(string)
+	appcore_model.Port = flag.String("port", "", "your service port")
 
-	ip = new(string)
-	ip = flag.String("ip", "", "your service ip")
+	appcore_model.GrpcPort = new(string)
+	appcore_model.GrpcPort = flag.String("grpcPort", "", "your service grpc port")
+
+	appcore_model.IP = new(string)
+	appcore_model.IP = flag.String("ip", "", "your service ip")
 
 	flag.Parse()
-	if *port == "" {
-		*port = "8000"
+	if *appcore_model.Port == "" {
+		*appcore_model.Port = "8000"
 	}
 
-	if *ip == "" {
-		*ip = "0.0.0.0"
+	if *appcore_model.GrpcPort == "" {
+		*appcore_model.GrpcPort = "1" + *appcore_model.Port
+	}
+
+	if *appcore_model.IP == "" {
+		*appcore_model.IP = "0.0.0.0"
 	}
 }
 
@@ -82,17 +90,31 @@ func NewService(serviceName, version string, apiHandler *appcore_handler.ApiHand
 }
 
 func (s *Service) Run() {
-	s.server = initGinAPI(s.Config, s.ApiHandler, s.Logger)
+	s.restAPIServer = initGinAPI(s.Config, s.ApiHandler, s.Logger)
+
+	//check GRPC
+	if s.ApiHandler.Module.GrpcServer() != nil {
+		initGRPC(s.ApiHandler, s.Logger)
+	}
 }
 
 func (s *Service) Stop() {
 	timeoutCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := s.server.Shutdown(timeoutCtx); err != nil {
+	//shutdown api
+	s.Logger.Info("shutdown API.")
+	if err := s.restAPIServer.Shutdown(timeoutCtx); err != nil {
 		s.Logger.Error(err.Error())
 	}
 
+	//shutdown grpc
+	if s.ApiHandler.Module.GrpcServer() != nil {
+		s.Logger.Info("shutdown GRPC.")
+		s.ApiHandler.Module.GrpcServer().GracefulStop()
+	}
+
+	//shutdown db
 	if s.DB != nil {
 		s.Logger.Info("disconnect DB")
 		sqlDB, err := s.DB.DB()
@@ -106,11 +128,13 @@ func (s *Service) Stop() {
 		}
 	}
 
+	//shutdown message broker
 	if s.MessageBroker != nil {
 		s.Logger.Info("disconnect MessageBroker")
 		s.MessageBroker.Close()
 	}
 
+	//shutdown cache
 	if s.Cache != nil {
 		s.Logger.Info("disconnect Cache")
 		err := s.Cache.Close()
@@ -146,5 +170,27 @@ func initGinAPI(configs *appcore_utils.Configurations, h *appcore_handler.ApiHan
 			"code":    "PAGE_NOT_FOUND",
 			"message": "Page not found"})
 	})
-	return r.ListenAndServe(*ip, *port)
+	return r.ListenAndServe(*appcore_model.IP, *appcore_model.Port)
+}
+
+func initGRPC(h *appcore_handler.ApiHandler, logger *logrus.Logger) {
+	logger.Info("listen grpc on ", *appcore_model.IP+":"+*appcore_model.GrpcPort)
+	grpcListener, err := net.Listen("tcp", *appcore_model.IP+":"+*appcore_model.GrpcPort)
+	if err != nil {
+		logger.Fatalf("GRPC: failed to listen: %v", err)
+	}
+
+	s := h.Module.GrpcServer()
+
+	// Register gRPC health check service
+	healthCheck := health.NewServer()
+	grpc_health_v1.RegisterHealthServer(s, healthCheck)
+
+	go func() {
+		err = s.Serve(grpcListener)
+		if err != nil {
+			logger.Fatalf("GRPC: failed to listen: %v", err)
+		}
+
+	}()
 }
